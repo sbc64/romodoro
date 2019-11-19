@@ -1,28 +1,74 @@
+extern crate rodio;
+
 use libnotify;
+use std::io::BufReader;
+use std::thread;
 use std::thread::sleep;
-use std::time::{Duration};
+use std::time::Duration;
+
+const FIVE_MINUTES: u64 = 5;
+const TWENTY_MINUTES: u64 = 20;
+const BOJACK: &'static str = "/home/sebas/repos/programs/romodoro/src/bojack.mp3";
+const BOWL: &'static str = "/home/sebas/repos/programs/romodoro/src/bowl.mp3";
+
+#[derive(Debug, Copy, Clone)]
+struct TransitionData {
+    duration: Duration,
+    message: &'static str,
+    sound: &'static str,
+    urgency: libnotify::Urgency,
+}
+
+enum State {
+    BeginWork,
+    ShortBreak,
+    LongBreak,
+}
+
+fn playback(filename: &'static str) {
+    let device = rodio::default_output_device().unwrap();
+    let sink = rodio::Sink::new(&device);
+    let file = std::fs::File::open(filename).unwrap();
+    sink.append(rodio::Decoder::new(BufReader::new(file)).unwrap());
+    sink.sleep_until_end();
+}
+
+fn process_state(data: TransitionData) {
+    let n = libnotify::Notification::new(
+        &format!("{} minutes", data.duration.as_secs()),
+        Some(data.message),
+        None,
+    );
+    thread::spawn(move || playback(data.sound));
+    n.set_urgency(data.urgency);
+    n.show().unwrap();
+    sleep(data.duration);
+}
 
 fn main() {
     libnotify::init("romodor").unwrap();
-    const FIVE_MINUTES: u64 = 300;
-    const TWENTY_MINUTES: u64 = 1200;
-    let mut duration: Duration = Duration::from_secs(FIVE_MINUTES);
-    let mut message = "Resting time";
+    let mut current_state = State::BeginWork;
     loop {
-        sleep(duration);
-        let n = libnotify::Notification::new(
-            &format!("{} minutes", duration.as_secs()),
-            Some(message),
-            None,
-        );
-        n.set_urgency(libnotify::Urgency::Critical);
-        n.show().unwrap();
-        if duration.as_secs() == FIVE_MINUTES {
-            duration = Duration::from_secs(TWENTY_MINUTES);
-            message = "Time to work";
-        } else {
-            duration = Duration::from_secs(FIVE_MINUTES);
-            message = "Begin rest";
+        match current_state {
+            State::BeginWork => {
+                process_state(TransitionData {
+                    duration: Duration::from_secs(TWENTY_MINUTES),
+                    message: "Begin work",
+                    sound: BOJACK,
+                    urgency: libnotify::Urgency::Critical,
+                });
+                current_state = State::ShortBreak;
+            },
+            State::ShortBreak => {
+                process_state(TransitionData {
+                    duration: Duration::from_secs(FIVE_MINUTES),
+                    message: "Take a break 😁",
+                    sound: BOWL,
+                    urgency: libnotify::Urgency::Low,
+                });
+                current_state = State::BeginWork;
+            }
+            State::LongBreak => println!("hi"),
         }
     }
 }

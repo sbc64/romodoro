@@ -9,7 +9,6 @@ edition = "2018"
 [dependencies]
 inotify = "0.7.0"
 libnotify = "1.0.3"
-lewton = "0.9.4"
-
+rodio = "0.10.0"
 # clap = "2.33"
 # config
