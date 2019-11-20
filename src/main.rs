@@ -9,11 +9,10 @@ use std::thread;
 use std::thread::sleep;
 use std::time::Duration;
 
-#[derive(Debug, Copy, Clone)]
 struct TransitionData {
     duration: Duration,
-    message: &'a str,
-    sound: &'static str,
+    message: String,
+    sound: String,
     urgency: libnotify::Urgency,
 }
 
@@ -23,7 +22,7 @@ enum State {
     LongBreak,
 }
 
-fn playback(filename: &'static str) {
+fn playback(filename: String) {
     let device = rodio::default_output_device().unwrap();
     let sink = rodio::Sink::new(&device);
     let file = std::fs::File::open(filename).unwrap();
@@ -32,13 +31,14 @@ fn playback(filename: &'static str) {
 }
 
 fn process_state(data: TransitionData) {
+    let urgency = data.urgency.clone();
     let n = libnotify::Notification::new(
         &format!("{} minutes done", data.duration.as_secs() / 60),
-        Some(data.message),
+        Some(data.message.as_ref()),
         None,
     );
     thread::spawn(move || playback(data.sound));
-    n.set_urgency(data.urgency);
+    n.set_urgency(urgency);
     n.show().unwrap();
 }
 
@@ -85,30 +85,33 @@ fn run(settings: config::Config) {
     loop {
         match current_state {
             State::BeginWork => {
+                let sound = begin_work.sound.clone();
                 process_state(TransitionData {
                     urgency: libnotify::Urgency::Critical,
-                    message: "Begin work",
-                    sound: begin_work.sound.as_ref(),
+                    message: "Begin work".to_string(),
+                    sound: sound,
                     duration: begin_work.duration
                 });
                 sleep(begin_work.duration);
                 current_state = State::ShortBreak;
             }
             State::ShortBreak => {
+                let sound = short_break.sound.clone();
                 process_state(TransitionData {
                     urgency: libnotify::Urgency::Low,
-                    message: "Take a break 😁",
-                    sound: &short_break.sound,
+                    message: "Take a break 😁".to_string(),
+                    sound: sound,
                     duration: short_break.duration
                 });
                 sleep(short_break.duration);
                 current_state = State::LongBreak;
             }
             State::LongBreak => {
+                let sound = long_break.sound.clone();
                 process_state(TransitionData {
                     urgency: libnotify::Urgency::Low,
-                    message: "Take a looooong break 😁",
-                    sound: &long_break.sound,
+                    message: "Take a looooong break 😁".to_string(),
+                    sound: sound,
                     duration: long_break.duration
                 });
                 sleep(long_break.duration);
