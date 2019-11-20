@@ -1,0 +1,13 @@
+order = ["BeginWork", "ShortBreak", "BeginWork", "LongBreak"]
+
+[long_break]
+duration = 20
+sound = "/home/sebas/repos/programs/romodoro/src/bowl.mp3"
+
+[short_break]
+duration = 20
+sound = "/home/sebas/repos/programs/romodoro/src/bowl.mp3"
+
+[begin_work]
+duration = 20
+sound = "/home/sebas/repos/programs/romodoro/src/bojack.mp3"
