@@ -34,7 +34,7 @@ fn playback(filename: String) {
 fn process_state(data: TransitionData) {
     let urgency = data.urgency.clone();
     let n = libnotify::Notification::new(
-        &format!("{} minutes done", data.duration.as_secs() / 60),
+        &format!("{} min timer started", data.duration.as_secs() / 60),
         Some(data.message.as_ref()),
         None,
     );
