@@ -6,7 +6,6 @@ use std::collections::HashMap;
 use std::env;
 use std::io::BufReader;
 use std::thread;
-use std::thread::sleep;
 use std::time::Duration;
 
 struct TransitionData {
@@ -16,6 +15,8 @@ struct TransitionData {
     urgency: libnotify::Urgency,
 }
 
+
+#[derive(Copy,Clone)]
 enum State {
     BeginWork,
     ShortBreak,
@@ -69,8 +70,8 @@ fn extract_table(table: HashMap<String, Value>) -> ConfigTable {
     }
 }
 
+
 fn run(settings: config::Config) {
-    let mut current_state = State::BeginWork;
 
     let long_break = settings.get_table("long_break").expect("no long_break table");
     let long_break = extract_table(long_break);
@@ -81,8 +82,33 @@ fn run(settings: config::Config) {
     let begin_work = settings.get_table("begin_work").expect("no begin_work table");
     let begin_work = extract_table(begin_work);
 
+    let flow_order = settings.get_array("order").expect("no order variable");
 
+    let mut flow = Vec::<State>::new();
+
+    for idx in 0..flow_order.len() {
+        let temp = flow_order[idx].clone();
+        let value = match temp.into_str() {
+            Ok(i) => {i}
+            Err(_) => {"not good".to_string()}
+        };
+        println!("Sequence {}:{}", idx, value);
+        if "BeginWork" == &value {
+                flow.push(State::BeginWork)
+        }
+        if "LongBreak" == &value {
+                flow.push(State::LongBreak)
+        }
+        if "ShortBreak" == &value {
+                flow.push(State::ShortBreak)
+        }
+    }
+
+
+    let mut index: usize = 0;
+    let mut current_state = flow[index];
     loop {
+        println!("Playing idx: {}", index);
         match current_state {
             State::BeginWork => {
                 let sound = begin_work.sound.clone();
@@ -92,8 +118,7 @@ fn run(settings: config::Config) {
                     sound: sound,
                     duration: begin_work.duration
                 });
-                sleep(begin_work.duration);
-                current_state = State::ShortBreak;
+                thread::sleep(begin_work.duration);
             }
             State::ShortBreak => {
                 let sound = short_break.sound.clone();
@@ -103,21 +128,26 @@ fn run(settings: config::Config) {
                     sound: sound,
                     duration: short_break.duration
                 });
-                sleep(short_break.duration);
-                current_state = State::LongBreak;
+                thread::sleep(short_break.duration);
             }
             State::LongBreak => {
                 let sound = long_break.sound.clone();
                 process_state(TransitionData {
                     urgency: libnotify::Urgency::Low,
-                    message: "Take a looooong break 😁".to_string(),
+                    // emoji is a medidating person
+                    message: "Take a looooong break 🧘🏼‍♂️".to_string(),
                     sound: sound,
                     duration: long_break.duration
                 });
-                sleep(long_break.duration);
-                current_state = State::BeginWork;
+                thread::sleep(long_break.duration);
             }
         }
+
+        index += 1;
+        if index >= flow.len() {
+            index = 0;
+        }
+        current_state = flow[index];
     }
 }
 
