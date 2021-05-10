@@ -6,7 +6,7 @@ pkgs.rustPlatform.buildRustPackage rec {
   pname = "romodoro";
   version = "0.1.0";
   src = ./.;
-  cargoSha256 = "/HEjabk8GzvAbKEMT0NII2iCkmG9ajjH/WKvd2bccPk=";
+  cargoSha256 = "0bfr5pckkgybmzqwsvswwsn3bxhcl9qnis3lkjq9dmlngjbq8b77";
   nativeBuildInputs = with pkgs; [
     libnotify
     pkgconfig
