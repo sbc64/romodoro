@@ -5,6 +5,8 @@ use config::*;
 use std::collections::HashMap;
 use std::env;
 use std::io::BufReader;
+use std::process::Command;
+use std::str;
 use std::thread;
 use std::time::Duration;
 
@@ -15,8 +17,7 @@ struct TransitionData {
     urgency: libnotify::Urgency,
 }
 
-
-#[derive(Copy,Clone)]
+#[derive(Copy, Clone)]
 enum State {
     BeginWork,
     ShortBreak,
@@ -49,37 +50,37 @@ struct ConfigTable {
 }
 
 fn extract_table(table: HashMap<String, Value>) -> ConfigTable {
-    let sound : String;
+    let sound: String;
     match table.get("sound") {
-        Some(entry) => {
-            sound = entry.to_string()
-            }
-        None => {sound = "".to_string()}
+        Some(entry) => sound = entry.to_string(),
+        None => sound = "".to_string(),
     }
 
     let duration: u64;
     match table.get("duration") {
-        Some(entry) => {
-            duration = entry.to_string().parse::<u64>().expect("Not a number")
-        }
-        None => {duration = 0}
+        Some(entry) => duration = entry.to_string().parse::<u64>().expect("Not a number"),
+        None => duration = 0,
     }
     return ConfigTable {
-        sound: sound,
+        sound,
         duration: Duration::from_secs(duration),
-    }
+    };
 }
 
-
 fn run(settings: config::Config) {
-
-    let long_break = settings.get_table("long_break").expect("no long_break table");
+    let long_break = settings
+        .get_table("long_break")
+        .expect("no long_break table");
     let long_break = extract_table(long_break);
 
-    let short_break = settings.get_table("short_break").expect("no short_break table");
+    let short_break = settings
+        .get_table("short_break")
+        .expect("no short_break table");
     let short_break = extract_table(short_break);
 
-    let begin_work = settings.get_table("begin_work").expect("no begin_work table");
+    let begin_work = settings
+        .get_table("begin_work")
+        .expect("no begin_work table");
     let begin_work = extract_table(begin_work);
 
     let flow_order = settings.get_array("order").expect("no order variable");
@@ -89,21 +90,23 @@ fn run(settings: config::Config) {
     for idx in 0..flow_order.len() {
         let temp = flow_order[idx].clone();
         let value = match temp.into_str() {
-            Ok(i) => {i}
-            Err(_) => {"not good".to_string()}
+            Ok(i) => i,
+            Err(_) => "not good".to_string(),
         };
         println!("Sequence {}:{}", idx, value);
         if "BeginWork" == &value {
-                flow.push(State::BeginWork)
+            flow.push(State::BeginWork)
         }
         if "LongBreak" == &value {
-                flow.push(State::LongBreak)
+            flow.push(State::LongBreak)
         }
         if "ShortBreak" == &value {
-                flow.push(State::ShortBreak)
+            flow.push(State::ShortBreak)
         }
     }
 
+    let mut freedom = Command::new("ssh");
+    freedom.arg("bastion_nix").arg("/root/nixos-config/freedom");
 
     let mut index: usize = 0;
     let mut current_state = flow[index];
@@ -115,9 +118,22 @@ fn run(settings: config::Config) {
                 process_state(TransitionData {
                     urgency: libnotify::Urgency::Critical,
                     message: "Begin work".to_string(),
-                    sound: sound,
-                    duration: begin_work.duration
+                    sound,
+                    duration: begin_work.duration,
                 });
+                println!(
+                    "Command result: {}",
+                    match str::from_utf8(
+                        &freedom
+                            .arg("off")
+                            .output()
+                            .expect("failed to execute process")
+                            .stdout
+                    ) {
+                        Ok(v) => v,
+                        Err(e) => panic!("Invalid UTF-8 sequence: {}", e),
+                    }
+                );
                 thread::sleep(begin_work.duration);
             }
             State::ShortBreak => {
@@ -125,9 +141,18 @@ fn run(settings: config::Config) {
                 process_state(TransitionData {
                     urgency: libnotify::Urgency::Low,
                     message: "Take a break 😁".to_string(),
-                    sound: sound,
-                    duration: short_break.duration
+                    sound,
+                    duration: short_break.duration,
                 });
+                println!(
+                    "Command result: {}",
+                    match str::from_utf8(
+                        &freedom.output().expect("failed to execute process").stdout
+                    ) {
+                        Ok(v) => v,
+                        Err(e) => panic!("Invalid UTF-8 sequence: {}", e),
+                    }
+                );
                 thread::sleep(short_break.duration);
             }
             State::LongBreak => {
@@ -136,9 +161,18 @@ fn run(settings: config::Config) {
                     urgency: libnotify::Urgency::Low,
                     // emoji is a medidating person
                     message: "Take a looooong break 🧘🏼‍♂️".to_string(),
-                    sound: sound,
-                    duration: long_break.duration
+                    sound,
+                    duration: long_break.duration,
                 });
+                println!(
+                    "Command result: {}",
+                    match str::from_utf8(
+                        &freedom.output().expect("failed to execute process").stdout
+                    ) {
+                        Ok(v) => v,
+                        Err(e) => panic!("Invalid UTF-8 sequence: {}", e),
+                    }
+                );
                 thread::sleep(long_break.duration);
             }
         }
