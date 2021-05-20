@@ -105,8 +105,9 @@ fn run(settings: config::Config) {
         }
     }
 
-    let mut freedom = Command::new("ssh");
-    freedom.arg("bastion_nix").arg("/root/nixos-config/freedom");
+    Command::new("ssh")
+        .arg("bastion_nix")
+        .arg("/root/nixos-config/freedom");
 
     let mut index: usize = 0;
     let mut current_state = flow[index];
@@ -124,7 +125,9 @@ fn run(settings: config::Config) {
                 println!(
                     "Command result: {}",
                     match str::from_utf8(
-                        &freedom
+                        &Command::new("ssh")
+                            .arg("bastion_nix")
+                            .arg("/root/nixos-config/freedom")
                             .arg("off")
                             .output()
                             .expect("failed to execute process")
@@ -147,7 +150,13 @@ fn run(settings: config::Config) {
                 println!(
                     "Command result: {}",
                     match str::from_utf8(
-                        &freedom.output().expect("failed to execute process").stdout
+                        &Command::new("ssh")
+                            .arg("bastion_nix")
+                            .arg("/root/nixos-config/freedom")
+                            .arg("off")
+                            .output()
+                            .expect("failed to execute process")
+                            .stdout
                     ) {
                         Ok(v) => v,
                         Err(e) => panic!("Invalid UTF-8 sequence: {}", e),
@@ -167,7 +176,12 @@ fn run(settings: config::Config) {
                 println!(
                     "Command result: {}",
                     match str::from_utf8(
-                        &freedom.output().expect("failed to execute process").stdout
+                        &Command::new("ssh")
+                            .arg("bastion_nix")
+                            .arg("/root/nixos-config/freedom")
+                            .output()
+                            .expect("failed to execute process")
+                            .stdout
                     ) {
                         Ok(v) => v,
                         Err(e) => panic!("Invalid UTF-8 sequence: {}", e),
