@@ -105,10 +105,6 @@ fn run(settings: config::Config) {
         }
     }
 
-    Command::new("ssh")
-        .arg("bastion_nix")
-        .arg("/root/nixos-config/freedom");
-
     let mut index: usize = 0;
     let mut current_state = flow[index];
     loop {
@@ -137,6 +133,11 @@ fn run(settings: config::Config) {
                         Err(e) => panic!("Invalid UTF-8 sequence: {}", e),
                     }
                 );
+                thread::spawn(move || {
+                    Command::new("bach")
+                        .output()
+                        .expect("failed to execute process")
+                });
                 thread::sleep(begin_work.duration);
             }
             State::ShortBreak => {
