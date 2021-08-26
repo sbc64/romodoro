@@ -67,6 +67,30 @@ fn extract_table(table: HashMap<String, Value>) -> ConfigTable {
     };
 }
 
+fn bach(cmd: &str) {
+    println!("Running: {}", cmd);
+    println!(
+        "{} result: {:?}",
+        cmd,
+        match Command::new(cmd).output() {
+            Ok(v) => {
+                let out = match str::from_utf8(&v.stdout) {
+                    Ok(v) => v,
+                    Err(e) => panic!("invalid utf-8 sequence: {}", e),
+                };
+                let err = match str::from_utf8(&v.stderr) {
+                    Ok(v) => v,
+                    Err(e) => panic!("invalid utf-8 sequence: {}", e),
+                };
+                println!("{}", err);
+                println!("{}", out);
+                format!("err: {}, out {}", err, out)
+            }
+            Err(e) => panic!("Failed execution of command '{}': {}", cmd, e),
+        }
+    );
+}
+
 fn run(settings: config::Config) {
     let long_break = settings
         .get_table("long_break")
@@ -133,11 +157,7 @@ fn run(settings: config::Config) {
                         Err(e) => panic!("Invalid UTF-8 sequence: {}", e),
                     }
                 );
-                thread::spawn(move || {
-                    Command::new("bach")
-                        .output()
-                        .expect("failed to execute process")
-                });
+                thread::spawn(move || bach("bach"));
                 thread::sleep(begin_work.duration);
             }
             State::ShortBreak => {
@@ -163,6 +183,7 @@ fn run(settings: config::Config) {
                         Err(e) => panic!("Invalid UTF-8 sequence: {}", e),
                     }
                 );
+                thread::spawn(move || bach("kbach"));
                 thread::sleep(short_break.duration);
             }
             State::LongBreak => {
@@ -188,6 +209,7 @@ fn run(settings: config::Config) {
                         Err(e) => panic!("Invalid UTF-8 sequence: {}", e),
                     }
                 );
+                thread::spawn(move || bach("kbach"));
                 thread::sleep(long_break.duration);
             }
         }
