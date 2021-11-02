@@ -4,6 +4,7 @@ extern crate rodio;
 use config::*;
 use std::collections::HashMap;
 use std::env;
+use std::fs;
 use std::io::BufReader;
 use std::process::Command;
 use std::str;
@@ -129,12 +130,15 @@ fn run(settings: config::Config) {
         }
     }
 
+    let mut lock_file_path: String = env::var("XDG_CONFIG_HOME").unwrap();
+    lock_file_path.push_str("/romodoro.lock");
     let mut index: usize = 0;
     let mut current_state = flow[index];
     loop {
         println!("Playing idx: {}", index);
         match current_state {
             State::BeginWork => {
+                fs::File::create(lock_file_path.clone());
                 let sound = begin_work.sound.clone();
                 process_state(TransitionData {
                     urgency: libnotify::Urgency::Critical,
