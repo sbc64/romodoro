@@ -1,7 +1,7 @@
 [package]
 name = "romodoro"
 version = "0.1.0"
-authors = ["Sebastian <sebasheston@gmail.com>"]
+authors = ["Sebastian <sebasheston@pm.me>"]
 edition = "2018"
 description = "Rust Pomodoro timer with custom sounds"
 license = "mit"
